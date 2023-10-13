@@ -25,5 +25,5 @@ export interface TableUniqueOptions {
     /**
      * Treat NULL as unique.
      */
-    nullDistinct?: boolean
+    nullsNotDistinct?: boolean
 }

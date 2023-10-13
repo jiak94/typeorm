@@ -30,7 +30,7 @@ export class TableUnique {
     /**
      * Treat NULL as unique.
      */
-    nullDistinct?: boolean
+    nullsNotDistinct?: boolean
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -40,7 +40,7 @@ export class TableUnique {
         this.name = options.name
         this.columnNames = options.columnNames
         this.deferrable = options.deferrable
-        this.nullDistinct = options.nullDistinct
+        this.nullsNotDistinct = options.nullsNotDistinct
     }
 
     // -------------------------------------------------------------------------
@@ -55,7 +55,7 @@ export class TableUnique {
             name: this.name,
             columnNames: [...this.columnNames],
             deferrable: this.deferrable,
-            nullDistinct: this.nullDistinct,
+            nullsNotDistinct: this.nullsNotDistinct,
         })
     }
 
@@ -73,7 +73,7 @@ export class TableUnique {
                 (column) => column.databaseName,
             ),
             deferrable: uniqueMetadata.deferrable,
-            nullDistinct: uniqueMetadata.nullDistinct,
+            nullsNotDistinct: uniqueMetadata.nullsNotDistinct,
         })
     }
 }

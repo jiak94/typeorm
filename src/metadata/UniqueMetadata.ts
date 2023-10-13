@@ -67,7 +67,7 @@ export class UniqueMetadata {
     /**
      * Treat NULL as DISTINCT for UNIQUE constrains.
      */
-    nullDistinct?: boolean
+    nullsNotDistinct?: boolean
 
     // ---------------------------------------------------------------------
     // Constructor
@@ -88,7 +88,7 @@ export class UniqueMetadata {
             this.givenName = options.args.name
             this.givenColumnNames = options.args.columns
             this.deferrable = options.args.deferrable
-            this.nullDistinct = options.args.nullDistinct
+            this.nullsNotDistinct = options.args.nullsNotDistinct
         }
     }
 

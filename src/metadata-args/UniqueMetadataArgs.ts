@@ -27,5 +27,5 @@ export interface UniqueMetadataArgs {
     /**
      * Treate NULL as unique.
      */
-    nullDistinct?: boolean
+    nullsNotDistinct?: boolean
 }

@@ -2381,7 +2381,7 @@ export class PostgresQueryRunner
             )
             upQueries.push(this.dropUniqueConstraintSql(table, columnUnique))
             downQueries.push(
-                this.createUniqueConstraintSql(table, columnUnique),
+                await this.createUniqueConstraintSql(table, columnUnique),
             )
         }
 
@@ -2609,7 +2609,7 @@ export class PostgresQueryRunner
                     uniqueConstraint.columnNames,
                 )
 
-        const up = this.createUniqueConstraintSql(table, uniqueConstraint)
+        const up = await this.createUniqueConstraintSql(table, uniqueConstraint)
         const down = this.dropUniqueConstraintSql(table, uniqueConstraint)
         await this.executeQueries(up, down)
         table.addUniqueConstraint(uniqueConstraint)
@@ -2646,7 +2646,10 @@ export class PostgresQueryRunner
             )
 
         const up = this.dropUniqueConstraintSql(table, uniqueConstraint)
-        const down = this.createUniqueConstraintSql(table, uniqueConstraint)
+        const down = await this.createUniqueConstraintSql(
+            table,
+            uniqueConstraint,
+        )
         await this.executeQueries(up, down)
         table.removeUniqueConstraint(uniqueConstraint)
     }
@@ -3944,13 +3947,16 @@ export class PostgresQueryRunner
     /**
      * Builds create table sql.
      */
-    protected async createTableSql(table: Table, createForeignKeys?: boolean): Promise<Query> {
+    protected async createTableSql(
+        table: Table,
+        createForeignKeys?: boolean,
+    ): Promise<Query> {
         const columnDefinitions = table.columns
             .map((column) => this.buildCreateColumnSql(table, column))
             .join(", ")
         let sql = `CREATE TABLE ${this.escapePath(table)} (${columnDefinitions}`
 
-        const version = await this.getVersion();
+        const version = await this.getVersion()
 
         table.columns
             .filter((column) => column.isUnique)
@@ -3986,8 +3992,11 @@ export class PostgresQueryRunner
                         .join(", ")
 
                     // postgres 15+ nulls not distinct
-                    let constraint = "";
-                    if (unique.nullDistinct && VersionUtils.isGreaterOrEqual(version, "15.0")) {
+                    let constraint = ""
+                    if (
+                        unique.nullsNotDistinct &&
+                        VersionUtils.isGreaterOrEqual(version, "15.0")
+                    ) {
                         constraint = `CONSTRAINT "${uniqueName}" UNIQUE NULLS NOT DISTINCT (${columnNames})`
                     } else {
                         constraint = `CONSTRAINT "${uniqueName}" UNIQUE (${columnNames})`
@@ -4339,16 +4348,27 @@ export class PostgresQueryRunner
     /**
      * Builds create unique constraint sql.
      */
-    protected createUniqueConstraintSql(
+    protected async createUniqueConstraintSql(
         table: Table,
         uniqueConstraint: TableUnique,
-    ): Query {
+    ): Promise<Query> {
         const columnNames = uniqueConstraint.columnNames
             .map((column) => `"` + column + `"`)
             .join(", ")
-        let sql = `ALTER TABLE ${this.escapePath(table)} ADD CONSTRAINT "${
-            uniqueConstraint.name
-        }" UNIQUE (${columnNames})`
+        let sql = ""
+        const version = await this.getVersion()
+        if (
+            uniqueConstraint.nullsNotDistinct &&
+            VersionUtils.isGreaterOrEqual(version, "15.0")
+        ) {
+            sql = `ALTER TABLE ${this.escapePath(table)} ADD CONSTRAINT "${
+                uniqueConstraint.name
+            }" UNIQUE NULLS NOT DISTINCT (${columnNames})`
+        } else {
+            sql = `ALTER TABLE ${this.escapePath(table)} ADD CONSTRAINT "${
+                uniqueConstraint.name
+            }" UNIQUE (${columnNames})`
+        }
         if (uniqueConstraint.deferrable)
             sql += ` DEFERRABLE ${uniqueConstraint.deferrable}`
         return new Query(sql)
