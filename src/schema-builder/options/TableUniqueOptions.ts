@@ -21,4 +21,9 @@ export interface TableUniqueOptions {
      * or at the end of a transaction
      */
     deferrable?: string
+
+    /**
+     * Treat NULL as unique.
+     */
+    nullDistinct?: boolean
 }

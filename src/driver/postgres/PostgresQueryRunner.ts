@@ -544,7 +544,7 @@ export class PostgresQueryRunner
             downQueries.push(deleteQuery)
         }
 
-        upQueries.push(this.createTableSql(table, createForeignKeys))
+        upQueries.push(await this.createTableSql(table, createForeignKeys))
         downQueries.push(this.dropTableSql(table))
 
         // if createForeignKeys is true, we must drop created foreign keys in down query.
@@ -607,7 +607,7 @@ export class PostgresQueryRunner
             )
 
         upQueries.push(this.dropTableSql(table))
-        downQueries.push(this.createTableSql(table, createForeignKeys))
+        downQueries.push(await this.createTableSql(table, createForeignKeys))
 
         // if table had columns with generated type, we must remove the expression from the metadata table
         const generatedColumns = table.columns.filter(
@@ -3944,11 +3944,13 @@ export class PostgresQueryRunner
     /**
      * Builds create table sql.
      */
-    protected createTableSql(table: Table, createForeignKeys?: boolean): Query {
+    protected async createTableSql(table: Table, createForeignKeys?: boolean): Promise<Query> {
         const columnDefinitions = table.columns
             .map((column) => this.buildCreateColumnSql(table, column))
             .join(", ")
         let sql = `CREATE TABLE ${this.escapePath(table)} (${columnDefinitions}`
+
+        const version = await this.getVersion();
 
         table.columns
             .filter((column) => column.isUnique)
@@ -3982,7 +3984,14 @@ export class PostgresQueryRunner
                     const columnNames = unique.columnNames
                         .map((columnName) => `"${columnName}"`)
                         .join(", ")
-                    let constraint = `CONSTRAINT "${uniqueName}" UNIQUE (${columnNames})`
+
+                    // postgres 15+ nulls not distinct
+                    let constraint = "";
+                    if (unique.nullDistinct && VersionUtils.isGreaterOrEqual(version, "15.0")) {
+                        constraint = `CONSTRAINT "${uniqueName}" UNIQUE NULLS NOT DISTINCT (${columnNames})`
+                    } else {
+                        constraint = `CONSTRAINT "${uniqueName}" UNIQUE (${columnNames})`
+                    }
                     if (unique.deferrable)
                         constraint += ` DEFERRABLE ${unique.deferrable}`
                     return constraint

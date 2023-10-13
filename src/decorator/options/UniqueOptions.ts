@@ -7,5 +7,6 @@ export interface UniqueOptions {
     /**
      * Indicate if unique constraints can be deferred.
      */
-    deferrable?: DeferrableType
+    deferrable?: DeferrableType,
+    nullDistinct?: boolean
 }
